@@ -1,0 +1,30 @@
+{
+  "name": "pilleco_sendxmls",
+  "version": "1.0.0",
+  "description": "Boilerplate project for pilleco_sendxmls",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "nodemon --exec tsx src/index.ts",
+    "build": "tsc",
+    "prod": "node dist/index.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.22.3",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^8.0.7"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.19.41",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^8.0.0",
+    "nodemon": "^3.1.0",
+    "tsx": "^4.10.5",
+    "typescript": "^5.4.5"
+  }
+}
