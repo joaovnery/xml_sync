@@ -49,7 +49,7 @@ export const startCronJobs = () => {
         console.log(
           `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
         );
-        await chatService.sendMessage(map.size);
+        await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
         return;
       }
 
