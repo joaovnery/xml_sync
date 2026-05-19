@@ -2,25 +2,28 @@ import { dbConnection } from "../config/database";
 import { RowDataPacket } from "mysql2/promise";
 
 export class XmlService {
-  async fetchXMLsPerWeekend(iniDate: string, endDate: string) {
+  async fetchXMLs(iniDate: string, endDate: string) {
     const map: Map<string, string> = new Map();
     console.log(
-      `[XML Service] Iniciando busca para as datas ${iniDate} a ${endDate}`,
+      `[XML Service] Iniciando busca para as datas ${iniDate} a ${endDate}...`,
     );
 
     try {
       const [rows] = await dbConnection.query<RowDataPacket[]>(
-        `SELECT
-          nf.nfno,
-          nf.nfkey,
-          nf.date,
-          x.xml
-       FROM nfeav nf
-       INNER JOIN nfeavxml x
-       ON nf.nfkey = x.nfkey
-       WHERE nf.date BETWEEN ? AND ?
+        `
+        SELECT 
+          nf.nfno, 
+          nf.nfkey, 
+          nf.date, 
+          nf.storeno, 
+          x.xml 
+        FROM nfeav nf 
+        INNER JOIN nfeavxml x 
+        ON nf.nfkey = x.nfkey 
+        WHERE nf.storeno = ?
+        AND nf.date BETWEEN ? AND ?;
       `,
-        [iniDate, endDate],
+        [1, iniDate, endDate],
       );
 
       if (rows.length === 0) {
@@ -32,6 +35,7 @@ export class XmlService {
         map.set(invoices.nfkey, invoices.xml);
       }
 
+      console.log(`[XML Service] XMLs encontrados: ${map.size}`);
       console.log(`[XML Service] XMLs coletados: ${map.size}`);
       console.log(`[XML Service] Sucesso! Todos os XMLs salvos fisicamente!`);
 

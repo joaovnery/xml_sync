@@ -1,4 +1,4 @@
 node_modules
 .env
-xmlsColetados
+xmls_coletados
 dbdev_mysql.yml

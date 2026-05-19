@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { formatDateForUTCBrazil } from "../utils/date.utils";
 
 export class MailService {
   private transporter;
@@ -20,17 +21,22 @@ export class MailService {
       "\n[Mail Service] Preparando e-mail com os arquivos ZIP em anexo...",
     );
     console.log(
-      `[Mail Service] [Remetente: ${process.env.EMAIL_SENDER}] - [Destinatário: ${process.env.EMAIL_RECIPIENT}]`,
+      `[Mail Service] [Remetente: ${process.env.EMAIL_SENDER}] - [Destinatário: ${process.env.EMAIL_RECIPIENT}] - [CC: ${process.env.EMAIL_CC}]`,
     );
+
+    const formatIniDate = formatDateForUTCBrazil(iniDate);
+    const formatEndDate = formatDateForUTCBrazil(endDate);
 
     try {
       await this.transporter.sendMail({
         from: `${process.env.EMAIL_SENDER}`,
-        cc: `suporteo2@nerus.com.br`,
+        cc: `${process.env.EMAIL_CC}`,
         to: `${process.env.EMAIL_RECIPIENT}`,
-        subject: `NF-e emitidas no Período ${iniDate} a ${endDate} - [Pilecco Nobre]`,
-        text: `Pessoal, bom dia! \nEspero que estejam bem! Segue em anexo as notas fiscais emitidas durante o período de ${iniDate} a ${endDate}`,
-        attachments: [{ filename: "notas_pilecco.zip", path: file }],
+        subject: `NF-e emitidas no Período ${formatIniDate} a ${formatEndDate} - [${process.env.CLIENT_NAME}]`,
+        text: `Pessoal, bom dia! \nEspero que estejam bem! Segue em anexo as notas fiscais emitidas durante o período de ${formatIniDate} a ${formatEndDate}`,
+        attachments: [
+          { filename: `notas_${process.env.CLIENT_NAME}.zip`, path: file },
+        ],
       });
 
       console.log(

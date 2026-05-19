@@ -14,75 +14,56 @@ export const startCronJobs = () => {
   const storageService = new StorageService();
   const chatService = new ChatService();
 
+  const getClient = process.env.CLIENT_NAME || "";
+  const dateNow = getDateNow();
+  const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "7");
+  const { iniDate, endDate } = getDynamicsDates(lookbackDays);
+
   cron.schedule(cronSchedule, async () => {
-    console.log(`\n[Cron] Acordando para executar tarefa...`);
-
     try {
-      const dateNow = getDateNow();
-      const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "7", 10);
-      const { iniDate, endDate } = getDynamicsDates(lookbackDays);
+      const useFixDate = process.env.USE_FIX_DATE === "true";
+      const finalIniDate = useFixDate
+        ? (process.env.INI_DATE as string)
+        : iniDate;
 
-      let map;
+      const finalEndDate = useFixDate
+        ? (process.env.END_DATE as string)
+        : endDate;
 
-      if (process.env.USE_FIX_DATE === "true") {
+      console.log(`\n[Cron] Acordando para executar tarefa...`);
+      console.log(`[Cron] Cliente: ${getClient}`);
+
+      if (useFixDate) {
         console.log(
-          `[Cron] Atenção: Usando datas Fixas do .env (${process.env.INI_DATE} a ${process.env.END_DATE})\n`,
-        );
-
-        map = await xmlService.fetchXMLsPerWeekend(
-          process.env.INI_DATE as string,
-          process.env.END_DATE as string,
-        );
-
-        if (!map || map.size === 0) {
-          console.log(
-            `[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
-          );
-
-          await chatService.sendMessageXmlsZero();
-          return;
-        }
-
-        const path = await storageService.compressAndSave(
-          map,
-          `notas_pilecco_${dateNow}.zip`,
-        );
-
-        await mailService.sendZipsReport(
-          path as string,
-          process.env.INI_DATE as string,
-          process.env.END_DATE as string,
-        );
-
-        await chatService.sendMessage(
-          map.size,
-          process.env.INI_DATE as string,
-          process.env.END_DATE as string,
+          `[Cron] Atenção: Usando datas Fixas do .env (${finalIniDate} a ${finalEndDate})\n`,
         );
       } else {
         console.log(
-          `[Cron] Usando período dinâmico de ${lookbackDays} dias ${iniDate} a ${endDate} \n`,
+          `[Cron] Usando período dinâmico de ${lookbackDays} dia(s) ${finalIniDate} a ${finalEndDate}\n`,
         );
-
-        map = await xmlService.fetchXMLsPerWeekend(iniDate, endDate);
-
-        if (!map || map.size === 0) {
-          console.log(
-            `[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
-          );
-
-          await chatService.sendMessageXmlsZero();
-          return;
-        }
-
-        const path = await storageService.compressAndSave(
-          map,
-          `notas_pilecco_${dateNow}.zip`,
-        );
-
-        await mailService.sendZipsReport(path as string, iniDate, endDate);
-        await chatService.sendMessage(map.size, iniDate, endDate);
       }
+
+      let map = await xmlService.fetchXMLs(finalIniDate, finalEndDate);
+
+      if (!map || map.size === 0) {
+        console.log(
+          `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+        );
+        await chatService.sendMessage(map.size);
+        return;
+      }
+
+      const path = await storageService.compressAndSave(
+        map,
+        `notas_${getClient}_${dateNow}.zip`,
+      );
+
+      await mailService.sendZipsReport(
+        path as string,
+        finalIniDate,
+        finalEndDate,
+      );
+      await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
 
       console.log(`\n[Cron] Tarefa concluída com sucesso!`);
     } catch (error) {

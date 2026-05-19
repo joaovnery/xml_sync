@@ -1,21 +1,37 @@
 export const getDynamicsDates = (lookbackDays: number) => {
-  const endDate = new Date();
   const iniDate = new Date();
+  const endDate = new Date();
 
+  iniDate.setDate(iniDate.getDate() - lookbackDays - 1);
   endDate.setDate(endDate.getDate() - 1);
 
-  iniDate.setDate(iniDate.getDate() - lookbackDays);
+  const formatLocal = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
-  const format = (date: Date) =>
-    date.toISOString().slice(0, 10).replace(/-/g, "");
+    return `${year}${month}${day}`;
+  };
 
   return {
-    iniDate: format(iniDate),
-    endDate: format(endDate),
+    iniDate: formatLocal(iniDate),
+    endDate: formatLocal(endDate),
   };
 };
 
 export const getDateNow = () => {
   const date = new Date();
-  return `${date.toISOString().slice(0, 10).replace(/-/g, "")}`;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}${month}${day}`;
+};
+
+export const formatDateForUTCBrazil = (date: string) => {
+  const year = date.slice(0, -4);
+  const month = date.slice(4, -2);
+  const day = date.slice(6);
+
+  return `${day}/${month}/${year}`;
 };

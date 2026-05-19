@@ -9,7 +9,7 @@ export class StorageService {
         `\n[Storage Service] Preparando para compactar os arquivos...`,
       );
 
-      const destDir = path.resolve(__dirname, "..", "..", "xmlsColetados");
+      const destDir = path.resolve(__dirname, "..", "..", "xmls_coletados");
 
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
