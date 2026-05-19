@@ -34,4 +34,30 @@ export class ChatService {
       });
     }
   }
+
+  public async sendMessageXmlsZero() {
+    try {
+      console.log(
+        "\n[Chat Service] Enviando notificação para o Google Chat...",
+      );
+
+      const message = `Não foram encontradas Notas para o período informado, com isso, não enviaremos o e-mail`;
+
+      await fetch(this.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: message }),
+      });
+
+      console.log("[Chat Service] Notificação Enviada com sucesso!\n");
+    } catch (error) {
+      const message = `[Chat Service] Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+
+      await fetch(this.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: message }),
+      });
+    }
+  }
 }

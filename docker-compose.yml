@@ -1,21 +1,11 @@
-version: '3.8'
+version: "3.8"
 services:
   pilecco_xml_sync:
-    image: jnery/pilecco_xml_sync:latest
-    container_name: pilecco_xml_sync
-    restart: always
+    image: ghrc.io/joaovnery/xml_sync:latest
+    container_name: xml_sync_container
+    restart: unless_stopped
     environment:
-      PORT=3333
-      "EMAIL_APP_PASSWORD=uznu jjpm ygdg pkyy"
-      "EMAIL_USER=joao.nery@nerus.com.br"
-      "EMAIL_DEST=joaonery87@gmail.com"
-      GOOGLE_CHAT_WEBHOOK_URL=https://chat.googleapis.com/v1/spaces/AAAAch5482s/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=1HA6CCN9mpY8D1rwgiDkp1Eun70RsvsRV-KVBt-b-mw
-      "CRON_SCHEDULE=*/1 * * * *"
-      DB_HOST=127.0.0.1
-      DB_PORT=3306
-      DB_USER=pilecco_user
-      DB_PASSWORD=pilecco_password
-      DB_NAME=pilecco
+      - .env
     ports:
       - "${PORT:-3333}:${PORT:-3333}"
     volumes:

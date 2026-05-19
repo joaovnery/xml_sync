@@ -34,6 +34,15 @@ export const startCronJobs = () => {
           process.env.END_DATE as string,
         );
 
+        if (!map || map.size === 0) {
+          console.log(
+            `[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+          );
+
+          await chatService.sendMessageXmlsZero();
+          return;
+        }
+
         const path = await storageService.compressAndSave(
           map,
           `notas_pilecco_${dateNow}.zip`,
@@ -57,6 +66,15 @@ export const startCronJobs = () => {
 
         map = await xmlService.fetchXMLsPerWeekend(iniDate, endDate);
 
+        if (!map || map.size === 0) {
+          console.log(
+            `[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+          );
+
+          await chatService.sendMessageXmlsZero();
+          return;
+        }
+
         const path = await storageService.compressAndSave(
           map,
           `notas_pilecco_${dateNow}.zip`,
@@ -64,13 +82,6 @@ export const startCronJobs = () => {
 
         await mailService.sendZipsReport(path as string, iniDate, endDate);
         await chatService.sendMessage(map.size, iniDate, endDate);
-      }
-
-      if (!map || map.size === 0) {
-        console.log(
-          `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
-        );
-        return;
       }
 
       console.log(`\n[Cron] Tarefa concluída com sucesso!`);

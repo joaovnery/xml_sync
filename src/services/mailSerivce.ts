@@ -26,6 +26,7 @@ export class MailService {
     try {
       await this.transporter.sendMail({
         from: `${process.env.EMAIL_SENDER}`,
+        cc: `suporteo2@nerus.com.br`,
         to: `${process.env.EMAIL_RECIPIENT}`,
         subject: `NF-e emitidas no Período ${iniDate} a ${endDate} - [Pilecco Nobre]`,
         text: `Pessoal, bom dia! \nEspero que estejam bem! Segue em anexo as notas fiscais emitidas durante o período de ${iniDate} a ${endDate}`,
