@@ -1,12 +1,12 @@
-# Pilecco XML Sync
+# XML Sync
 
-Robô interno da **Nérus** que automatiza a coleta, compactação e envio por e-mail dos XMLs de NF-e do cliente **Pilecco Nobre**.
+Robô interno da **Nérus** que automatiza a coleta, compactação e envio por e-mail dos XMLs de NF-e.
 
 ---
 
 ## O que ele faz?
 
-1. **Consulta o banco MySQL** do Pilecco e coleta todos os XMLs de notas fiscais emitidas dentro de um período.
+1. **Consulta o banco MySQL** e coleta todos os XMLs de notas fiscais emitidas dentro de um período.
 2. **Compacta** todos os XMLs em um único arquivo `.zip`.
 3. **Envia por e-mail** o `.zip` para o(s) destinatário(s) configurado(s).
 4. **Notifica no Google Chat** que a sincronização foi concluída (ou falhou).
@@ -29,10 +29,10 @@ Cron dispara
 
 ### Modos de operação
 
-| Variável | Comportamento |
-|---|---|
+| Variável             | Comportamento                                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `USE_FIX_DATE=false` | **Modo dinâmico** (padrão) — usa `LOOKBACKDAYS` para calcular o período automaticamente. Ex: `LOOKBACKDAYS=7` coleta os últimos 7 dias. |
-| `USE_FIX_DATE=true` | **Modo fixo** — usa as datas exatas de `INI_DATE` e `END_DATE` do `.env`. Útil para reprocessar um período específico. |
+| `USE_FIX_DATE=true`  | **Modo fixo** — usa as datas exatas de `INI_DATE` e `END_DATE` do `.env`. Útil para reprocessar um período específico.                  |
 
 ---
 
@@ -61,12 +61,12 @@ INI_DATE=20260401
 END_DATE=20260430
 LOOKBACKDAYS=7
 
-## MySQL (banco do Pilecco no servidor)
+## MySQL (banco do  no servidor)
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_USER=pilecco_user
-DB_PASSWORD=pilecco_password
-DB_NAME=pilecco
+DB_USER=_user
+DB_PASSWORD=_password
+DB_NAME=
 ```
 
 ### Detalhes importantes
@@ -102,10 +102,10 @@ npm run dev
 
 ```bash
 # Build
-docker build -t jnery/pilecco_xml_sync:latest .
+docker build -t jnery/_xml_sync:latest .
 
 # Push para o Docker Hub
-docker push jnery/pilecco_xml_sync:latest
+docker push jnery/_xml_sync:latest
 ```
 
 #### 2. Deploy no servidor (EC2)
@@ -154,7 +154,7 @@ src/
 - **Node.js 20** + **TypeScript**
 - **Express** — servidor HTTP
 - **node-cron** — agendamento de tarefas
-- **mysql2** — conexão com o banco MySQL do Pilecco
+- **mysql2** — conexão com o banco MySQL do
 - **archiver** — compactação dos XMLs em ZIP
 - **nodemailer** — envio de e-mail via SMTP/Gmail
 - **Docker** — containerização para deploy
