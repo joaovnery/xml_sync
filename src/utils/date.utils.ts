@@ -2,7 +2,7 @@ export const getDynamicsDates = (lookbackDays: number) => {
   const iniDate = new Date();
   const endDate = new Date();
 
-  iniDate.setDate(iniDate.getDate() - lookbackDays - 1);
+  iniDate.setDate(iniDate.getDate() - lookbackDays);
   endDate.setDate(endDate.getDate() - 1);
 
   const formatLocal = (date: Date) => {
