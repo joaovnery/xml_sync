@@ -1,5 +1,9 @@
 import { dbConnection } from "../config/database";
 import { RowDataPacket } from "mysql2/promise";
+import path from "path";
+import { StateManager } from "../utils/stateManager";
+
+const XMLS_DIR = path.resolve(__dirname, "../../xmls_coletados");
 
 export class XmlService {
   async fetchXMLs(iniDate: string, endDate: string) {
@@ -9,6 +13,8 @@ export class XmlService {
     );
 
     try {
+      const processedKeys = await StateManager.getProcessedKeys();
+
       const [rows] = await dbConnection.query<RowDataPacket[]>(
         `
         SELECT 
@@ -28,18 +34,27 @@ export class XmlService {
 
       if (rows.length === 0) {
         console.error(`[XML Service] Nenhum XML foi encontrado neste período.`);
-        return map;
+        return { map, newlyFetchedKeys: [] };
       }
 
+      let ignoreDuplicates = 0;
+      const newlyFetchedKeys: string[] = [];
+
       for (const invoices of rows) {
+        if (processedKeys.includes(invoices.nfkey)) {
+          ignoreDuplicates++;
+          continue;
+        }
+
         map.set(invoices.nfkey, invoices.xml);
+        newlyFetchedKeys.push(invoices.nfkey);
       }
 
       console.log(`[XML Service] XMLs encontrados: ${map.size}`);
       console.log(`[XML Service] XMLs coletados: ${map.size}`);
       console.log(`[XML Service] Sucesso! Todos os XMLs salvos fisicamente!`);
 
-      return map;
+      return { map, newlyFetchedKeys };
     } catch (error) {
       console.error(`erro ao realizar busca ${error}`);
       throw error;

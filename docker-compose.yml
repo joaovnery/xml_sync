@@ -10,3 +10,4 @@ services:
       - "${PORT:-3333}:${PORT:-3333}"
     volumes:
       - ./xmlsColetados:/app/xmlsColetados
+      - ./data:/app/data

@@ -2,8 +2,17 @@ export const getDynamicsDates = (lookbackDays: number) => {
   const iniDate = new Date();
   const endDate = new Date();
 
+  if (!lookbackDays) {
+    lookbackDays = 0;
+  }
+
   iniDate.setDate(iniDate.getDate() - lookbackDays);
-  endDate.setDate(endDate.getDate() - 1);
+
+  // if (lookbackDays >= 1) {
+  //   endDate.setDate(endDate.getDate() - 1);
+  // } else {
+  //   endDate.setDate(endDate.getDate());
+  // }
 
   const formatLocal = (date: Date) => {
     const year = date.getFullYear();

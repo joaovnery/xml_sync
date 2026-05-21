@@ -4,6 +4,7 @@ import { getDynamicsDates, getDateNow } from "../utils/date.utils";
 import { MailService } from "../services/mailSerivce";
 import { StorageService } from "../services/storageService";
 import { ChatService } from "../services/chatService";
+import { StateManager } from "../utils/stateManager";
 
 export const startCronJobs = () => {
   const cronSchedule = process.env.CRON_SCHEDULE || `* * * * *`;
@@ -13,14 +14,27 @@ export const startCronJobs = () => {
   const mailService = new MailService();
   const storageService = new StorageService();
   const chatService = new ChatService();
-
   const getClient = process.env.CLIENT_NAME || "";
-  const dateNow = getDateNow();
-  const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "7");
-  const { iniDate, endDate } = getDynamicsDates(lookbackDays);
+
+  let isRunning = false;
 
   cron.schedule(cronSchedule, async () => {
+    if (isRunning) {
+      console.log(
+        `[Cron] [Aviso] A execução anterior ainda não terminou. Pulando está rodada para evitar duplicados`,
+      );
+    }
+
+    const dateNow = getDateNow();
+    const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "1");
+    const { iniDate, endDate } = getDynamicsDates(lookbackDays);
+
     try {
+      isRunning = true;
+
+      console.log(`\n[Cron] Acordando para executar tarefa...`);
+      console.log(`[Cron] Cliente: ${getClient}`);
+
       const useFixDate = process.env.USE_FIX_DATE === "true";
       const finalIniDate = useFixDate
         ? (process.env.INI_DATE as string)
@@ -29,9 +43,6 @@ export const startCronJobs = () => {
       const finalEndDate = useFixDate
         ? (process.env.END_DATE as string)
         : endDate;
-
-      console.log(`\n[Cron] Acordando para executar tarefa...`);
-      console.log(`[Cron] Cliente: ${getClient}`);
 
       if (useFixDate) {
         console.log(
@@ -43,7 +54,10 @@ export const startCronJobs = () => {
         );
       }
 
-      let map = await xmlService.fetchXMLs(finalIniDate, finalEndDate);
+      let { map, newlyFetchedKeys } = await xmlService.fetchXMLs(
+        finalIniDate,
+        finalEndDate,
+      );
 
       if (!map || map.size === 0) {
         console.log(
@@ -53,21 +67,27 @@ export const startCronJobs = () => {
         return;
       }
 
-      const path = await storageService.compressAndSave(
+      const zipPath = await storageService.compressAndSave(
         map,
         `notas_${getClient}_${dateNow}.zip`,
       );
 
       await mailService.sendZipsReport(
-        path as string,
+        zipPath as string,
         finalIniDate,
         finalEndDate,
       );
       await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
 
+      if (newlyFetchedKeys.length > 0) {
+        await StateManager.addProcessedKeys(newlyFetchedKeys);
+      }
+
       console.log(`\n[Cron] Tarefa concluída com sucesso!`);
     } catch (error) {
       console.error(`[Cron] Falha critica na execução da tarefa: ${error}`);
+    } finally {
+      isRunning = false;
     }
   });
 };

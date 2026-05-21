@@ -16,7 +16,7 @@ export class MailService {
     });
   }
 
-  public async sendZipsReport(file: string, iniDate: string, endDate: string) {
+  async sendZipsReport(file: string, iniDate: string, endDate: string) {
     console.log(
       "\n[Mail Service] Preparando e-mail com os arquivos ZIP em anexo...",
     );
