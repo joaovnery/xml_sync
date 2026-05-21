@@ -30,7 +30,7 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 
-RUN mkdir -p xmls_coletados && chown -R node:node xmls_coletados data
+RUN mkdir -p xmls_coletados data && chown -R node:node xmls_coletados data
 
 USER node
 
