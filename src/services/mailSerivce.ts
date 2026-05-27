@@ -61,8 +61,8 @@ export class MailService {
         from: `${process.env.EMAIL_SENDER}`,
         cc: `${process.env.EMAIL_CC}`,
         to: `${process.env.EMAIL_RECIPIENT}`,
-        subject: `NF-e - [${process.env.CLIENT_NAME}]`,
-        text: `Pessoal, bom dia! \n Nota emitida abaixo em anexo:`,
+        subject: `Envio de NF-e - [${process.env.CLIENT_NAME}]`,
+        text: `Prezados,\n Nota emitida pelo Nérus, segue abaixo o anexo da nota:`,
         attachments: [
           { filename: `notas_${process.env.CLIENT_NAME}.zip`, path: file },
         ],
