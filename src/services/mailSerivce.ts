@@ -44,6 +44,36 @@ export class MailService {
       );
     } catch (error) {
       console.error(`Erro ao enviar e-mail ${error}`);
+      throw error;
+    }
+  }
+
+  async sendZipReportPilecco(file: string) {
+    console.log(
+      "\n[Mail Service] Preparando e-mail com os arquivos ZIP em anexo...",
+    );
+    console.log(
+      `[Mail Service] [Remetente: ${process.env.EMAIL_SENDER}] - [Destinatário: ${process.env.EMAIL_RECIPIENT}] - [CC: ${process.env.EMAIL_CC}]`,
+    );
+
+    try {
+      await this.transporter.sendMail({
+        from: `${process.env.EMAIL_SENDER}`,
+        cc: `${process.env.EMAIL_CC}`,
+        to: `${process.env.EMAIL_RECIPIENT}`,
+        subject: `NF-e - [${process.env.CLIENT_NAME}]`,
+        text: `Pessoal, bom dia! \n Nota emitida abaixo em anexo:`,
+        attachments: [
+          { filename: `notas_${process.env.CLIENT_NAME}.zip`, path: file },
+        ],
+      });
+
+      console.log(
+        "[Mail Service] E-mail enviado com sucesso para os destinatários!",
+      );
+    } catch (error) {
+      console.error(`Erro ao enviar e-mail ${error}`);
+      throw error;
     }
   }
 }

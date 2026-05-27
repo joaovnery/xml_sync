@@ -32,13 +32,59 @@ export class ChatService {
 
       console.log("[Chat Service] Notificação Enviada com sucesso!\n");
     } catch (error) {
-      const message = `Cliente: ${process.env.CLIENT_NAME} \n Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+      try {
+        const errorMessage = `Cliente: ${process.env.CLIENT_NAME} \n Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+        await fetch(this.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: errorMessage }),
+        });
+      } catch (error) {
+        console.error(
+          `[Chat Service] Erro fatal: Impossível se comunicar com o Google Chat: ${error}`,
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async sendMessagePilecco(quantityXmls: number) {
+    try {
+      console.log(
+        "\n[Chat Service] Enviando notificação para o Google Chat...",
+      );
+
+      let message: string;
+
+      message = `Cliente: ${process.env.CLIENT_NAME} \n XML enviado com sucesso, E-mail Enviado com sucesso!`;
+
+      if (quantityXmls === 0) {
+        message = `Cliente: ${process.env.CLIENT_NAME} \n Não foi en com isso não enviaremos o E-mail.`;
+      }
 
       await fetch(this.webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: message }),
       });
+
+      console.log("[Chat Service] Notificação Enviada com sucesso!\n");
+    } catch (error) {
+      try {
+        const errorMessage = `Cliente: ${process.env.CLIENT_NAME} \n Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+        await fetch(this.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: errorMessage }),
+        });
+      } catch (error) {
+        console.error(
+          `[Chat Service] Erro fatal: Impossível se comunicar com o Google Chat: ${error}`,
+        );
+
+        throw error;
+      }
     }
   }
 }

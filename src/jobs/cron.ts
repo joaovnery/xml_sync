@@ -25,69 +25,121 @@ export const startCronJobs = () => {
       );
     }
 
-    const dateNow = getDateNow();
-    const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "1");
-    const { iniDate, endDate } = getDynamicsDates(lookbackDays);
+    // ------- Pilecco ------- //
 
-    try {
-      isRunning = true;
-
+    if (process.env.CLIENT_NAME === "Pilecco") {
       console.log(`\n[Cron] Acordando para executar tarefa...`);
-      console.log(`[Cron] Cliente: ${getClient}`);
+      console.log(`[Cron] Cliente: ${getClient}\n`);
+      try {
+        isRunning = true;
+        const dateNow = getDateNow();
+        const { map, filaIds } = await xmlService.fetchXmlsPilecco();
 
-      const useFixDate = process.env.USE_FIX_DATE === "true";
-      const finalIniDate = useFixDate
-        ? (process.env.INI_DATE as string)
-        : iniDate;
+        if (!map || map.size === 0) {
+          console.log(
+            `\n[Cron] Nenhum XML para processar. Voltando a dormir...`,
+          );
 
-      const finalEndDate = useFixDate
-        ? (process.env.END_DATE as string)
-        : endDate;
+          // await chatService.sendMessage(map.size);
+          return;
+        }
 
-      if (useFixDate) {
         console.log(
-          `[Cron] Atenção: Usando datas Fixas do .env (${finalIniDate} a ${finalEndDate})\n`,
+          `[Cron] Encontradas ${map.size} novas notas. Gerando ZIP...`,
         );
-      } else {
-        console.log(
-          `[Cron] Usando período dinâmico de ${lookbackDays} dia(s) ${finalIniDate} a ${finalEndDate}\n`,
+        const zipPath = await storageService.compressAndSave(
+          map,
+          `notas_${getClient}_${dateNow}.zip`,
         );
-      }
+        await mailService.sendZipReportPilecco(zipPath as string);
 
-      let { map, newlyFetchedKeys } = await xmlService.fetchXMLs(
-        finalIniDate,
-        finalEndDate,
-      );
+        await xmlService.markAsSent(filaIds);
 
-      if (!map || map.size === 0) {
-        console.log(
-          `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+        await chatService.sendMessagePilecco(map.size);
+      } catch (error) {
+        console.error(
+          `Erro ao executar CRON, Cliente: ${process.env.CLIENT_NAME}, Error: ${error}`,
         );
-        await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+
+        throw error;
+      } finally {
+        isRunning = false;
         return;
       }
+    }
 
-      const zipPath = await storageService.compressAndSave(
-        map,
-        `notas_${getClient}_${dateNow}.zip`,
-      );
+    // --------- Mebuki --------------- //
 
-      await mailService.sendZipsReport(
-        zipPath as string,
-        finalIniDate,
-        finalEndDate,
-      );
-      await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+    if (process.env.CLIENT_NAME === "Mebuki") {
+      const dateNow = getDateNow();
+      const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "1");
+      const { iniDate, endDate } = getDynamicsDates(lookbackDays);
 
-      if (newlyFetchedKeys.length > 0) {
-        await StateManager.addProcessedKeys(newlyFetchedKeys);
+      try {
+        console.log(`\n[Cron] Acordando para executar tarefa...`);
+        console.log(`[Cron] Cliente: ${getClient}`);
+
+        isRunning = true;
+
+        const useFixDate = process.env.USE_FIX_DATE === "true";
+        const finalIniDate = useFixDate
+          ? (process.env.INI_DATE as string)
+          : iniDate;
+
+        const finalEndDate = useFixDate
+          ? (process.env.END_DATE as string)
+          : endDate;
+
+        if (useFixDate) {
+          console.log(
+            `[Cron] Atenção: Usando datas Fixas do .env (${finalIniDate} a ${finalEndDate})\n`,
+          );
+        } else {
+          console.log(
+            `[Cron] Usando período dinâmico de ${lookbackDays} dia(s) ${finalIniDate} a ${finalEndDate}\n`,
+          );
+        }
+
+        let { map, newlyFetchedKeys } = await xmlService.fetchXmlsMebuki(
+          finalIniDate,
+          finalEndDate,
+        );
+
+        if (!map || map.size === 0) {
+          console.log(
+            `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+          );
+          await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+          return;
+        }
+
+        const zipPath = await storageService.compressAndSave(
+          map,
+          `notas_${getClient}_${dateNow}.zip`,
+        );
+
+        await mailService.sendZipsReport(
+          zipPath as string,
+          finalIniDate,
+          finalEndDate,
+        );
+        await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+
+        if (newlyFetchedKeys.length > 0) {
+          await StateManager.addProcessedKeys(newlyFetchedKeys);
+        }
+
+        console.log(`\n[Cron] Tarefa concluída com sucesso!`);
+      } catch (error) {
+        console.error(
+          `Erro ao executar CRON, Cliente: ${process.env.CLIENT_NAME}, Error: ${error}`,
+        );
+
+        throw error;
+      } finally {
+        isRunning = false;
+        return;
       }
-
-      console.log(`\n[Cron] Tarefa concluída com sucesso!`);
-    } catch (error) {
-      console.error(`[Cron] Falha critica na execução da tarefa: ${error}`);
-    } finally {
-      isRunning = false;
     }
   });
 };

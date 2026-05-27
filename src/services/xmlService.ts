@@ -6,7 +6,61 @@ import { StateManager } from "../utils/stateManager";
 const XMLS_DIR = path.resolve(__dirname, "../../xmls_coletados");
 
 export class XmlService {
-  async fetchXMLs(iniDate: string, endDate: string) {
+  async fetchXmlsPilecco() {
+    const map: Map<string, string> = new Map();
+    const filaIds: number[] = [];
+    console.log(`[XML Service] Iniciando busca de XMLs...`);
+
+    const [rows] = await dbConnection.query<RowDataPacket[]>(
+      `
+      SELECT 
+        f.id AS fila_id,
+        nf.nfno, 
+        nf.nfkey, 
+        nf.date, 
+        nf.storeno, 
+        x.xml 
+      FROM fila_envio_xml f
+      INNER JOIN nfeav nf ON f.nfKey = nf.nfKey 
+      INNER JOIN nfeavxml x ON f.nfKey = x.nfKey 
+      WHERE f.status_envio = 'PENDENTE'
+      AND f.storeno = ?;
+      `,
+      [1],
+    );
+
+    for (const invoice of rows) {
+      map.set(invoice.nfkey, invoice.xml);
+      filaIds.push(invoice.fila_id);
+    }
+
+    return { map, filaIds };
+  }
+
+  async markAsSent(filaIds: number[]) {
+    if (filaIds.length === 0) return;
+
+    try {
+      const placeholders = filaIds.map(() => "?").join(",");
+
+      await dbConnection.query(
+        `UPDATE fila_envio_xml SET status_envio='ENVIADO' WHERE id IN (${placeholders})`,
+        filaIds,
+      );
+
+      console.log(
+        `[XML Service] ${filaIds.length} notas atualizadas para ENVIADO.`,
+      );
+    } catch (error) {
+      console.error(`[XML Service] Erro ao atualizar status na fila:`, error);
+      throw error;
+    }
+  }
+
+  async fetchXmlsMebuki(
+    iniDate: string,
+    endDate: string,
+  ): Promise<{ map: Map<string, string>; newlyFetchedKeys: string[] }> {
     const map: Map<string, string> = new Map();
     console.log(
       `[XML Service] Iniciando busca para as datas ${iniDate} a ${endDate}...`,
