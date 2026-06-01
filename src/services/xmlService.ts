@@ -96,40 +96,39 @@ export class XmlService {
       const [rows] = await dbConnection.query<DifalRow[]>(
         `
         SELECT
-            nf.storeno                                   AS Loja,
-            IFNULL(ctadd.state, custp.state1)            AS UF, 
-            nf.nfno                                      AS NF,
-            nf.nfse                                      AS Sr,
-            DATE_FORMAT(nf.issuedate, '%d/%m/%y')        AS Emissao,   
-            FORMAT(X.baseCalculoIcms / 100, 2, 'de_DE')  AS BaseICMS_,
-            X.l2 / 100                                   AS 'Al_Interna%',
-            FORMAT(X.icmsAmt / 100, 2, 'de_DE')          AS ValorICMS,
-            X.l4 / 100                                   AS 'Al_Destin%',
-            FORMAT(X.m3 / 100, 2, 'de_DE')               AS ValorDIFAL,
-            FORMAT(nf.icmsUfDest / 100, 2, 'de_DE')      AS TotalDIFAL,
-            nfeav.nfKey                                  AS Chave,  
-            xaprdm.msg                                   AS Obs_NF    
+          nfeav.storeno                                AS Loja,
+          IFNULL(ctadd.state, custp.state1)            AS UF, 
+          nfeav.nfno                                   AS NF,
+          nf.nfse                                      AS Sr,
+          DATE_FORMAT(IFNULL(nf.issuedate, STR_TO_DATE(nfeav.date, '%Y%m%d')), '%d/%m/%y') AS Emissao,   
+          FORMAT(X.baseCalculoIcms / 100, 2, 'de_DE')  AS BaseICMS_,
+          X.l2 / 100                                   AS 'Al_Interna%',
+          FORMAT(X.icmsAmt / 100, 2, 'de_DE')          AS ValorICMS,
+          X.l4 / 100                                   AS 'Al_Destin%',
+          FORMAT(X.m3 / 100, 2, 'de_DE')               AS ValorDIFAL,
+          FORMAT(IFNULL(nf.icmsUfDest, X.m3) / 100, 2, 'de_DE') AS TotalDIFAL,
+          nfeav.nfKey                                  AS Chave,  
+          xaprdm.msg                                   AS Obs_NF    
         FROM
-            fila_envio_xml AS fila
+          fila_envio_xml AS fila
         INNER JOIN nfeav AS nfeav ON nfeav.nfKey = fila.nfKey AND nfeav.storeno = fila.storeno
         INNER JOIN xaprd2 AS X ON X.xano = nfeav.xano AND X.storeno = nfeav.storeno
-        INNER JOIN nf AS nf ON nf.xano = X.xano AND nf.storeno = X.storeno AND nf.nfno = X.nfno AND nf.nfse = X.nfse
+        LEFT JOIN nf AS nf ON nf.xano = X.xano AND nf.storeno = X.storeno AND nf.nfno = X.nfno AND nf.nfse = X.nfse
         LEFT JOIN xaprd3 ON xaprd3.xano = X.xano AND xaprd3.storeno = X.storeno AND xaprd3.pdvno = X.pdvno AND xaprd3.prdno = X.prdno AND xaprd3.grade = X.grade
         LEFT JOIN xaprdm ON xaprdm.xano = X.xano AND xaprdm.storeno = X.storeno 
-        LEFT JOIN custp ON custp.no = nf.custno
+        LEFT JOIN custp ON custp.no = nfeav.custno
         LEFT JOIN cfo ON cfo.no = nf.cfo
-        LEFT JOIN nfr ON nfr.custno = nf.custno AND nfr.auxLong1 = nf.eordno
+        LEFT JOIN nfr ON nfr.custno = nfeav.custno AND nfr.xano = nfeav.xano
         LEFT JOIN ctadd ON ctadd.custno = nfr.custno AND ctadd.seqno = nfr.auxShort1
         WHERE
-            fila.id IN (?)          AND 
-            nf.cfo > 0              AND
-            nf.status = 0           AND
-            ((X.m3 > 0) OR (xaprd3.auxMy6 > 0)) AND
-            xaprdm.msg LIKE 'Valores%'
+          fila.id IN (?)                          AND 
+          (nf.status = 0 OR nf.status IS NULL)    AND
+          ((X.m3 > 0) OR (xaprd3.auxMy6 > 0))     AND
+          xaprdm.msg LIKE '%Valores%'             
         GROUP BY 
-            X.xano, X.storeno, X.prdno, nfeav.nfKey, xaprdm.msg
+          X.xano, X.storeno, X.prdno, nfeav.nfKey, xaprdm.msg
         ORDER BY
-            nf.storeno, nf.cfo, nf.issuedate, nf.nfno;
+          nfeav.storeno, nfeav.nfno;
       `,
         [filaIds],
       );
