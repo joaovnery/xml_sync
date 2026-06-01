@@ -83,25 +83,45 @@ export class MailService {
 
     if (difalData && difalData.length > 0) {
       const cardsHtml = difalData
-        .map(
-          (row) => `
-        <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
-          <p style="margin: 0 0 8px; font-size: 14px; color: #333;">
-            <strong>NF:</strong> ${row.NF} (Série ${row.Sr}) | <strong>Loja:</strong> ${row.Loja} | <strong>Destino:</strong> ${row.UF}
+        .map((row) => {
+          // Formata as alíquotas removendo zeros decimais extras (ex: de 12.0000 para 12)
+          const alqInterna = row["Al_Interna%"]
+            ? parseFloat(row["Al_Interna%"].toString())
+            : 0;
+          const alqDestino = row["Al_Destin%"]
+            ? parseFloat(row["Al_Destin%"].toString())
+            : 0;
+
+          return `
+        <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
+          <p style="margin: 0 0 10px; font-size: 14px; color: #333;">
+            <strong>NF:</strong> ${row.NF} (Série ${row.Sr}) | <strong>Loja:</strong> ${row.Loja} | <strong>Destino (UF):</strong> ${row.UF}
           </p>
-          <p style="margin: 0 0 8px; font-size: 13px; color: #555;">
-            <strong>Emissão:</strong> ${row.Emissao} | <strong>Base ICMS:</strong> R$ ${row.BaseICMS_}
+          
+          <table style="width: 100%; font-size: 13px; color: #555; margin-bottom: 8px; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 3px 0;"><strong>Emissão:</strong> ${row.Emissao || "---"}</td>
+              <td style="padding: 3px 0;"><strong>Base ICMS:</strong> R$ ${row.BaseICMS_}</td>
+              <td style="padding: 3px 0;"><strong>Valor ICMS:</strong> R$ ${row.ValorICMS}</td>
+            </tr>
+            <tr>
+              <td style="padding: 3px 0;"><strong>Alíq. Interna:</strong> ${alqInterna}%</td>
+              <td style="padding: 3px 0;"><strong>Alíq. Destino:</strong> ${alqDestino}%</td>
+              <td style="padding: 3px 0;"><strong>Valor DIFAL:</strong> R$ ${row.ValorDIFAL}</td>
+            </tr>
+          </table>
+
+          <p style="margin: 8px 0 4px; font-size: 13px; color: #1a73e8;">
+            <strong>Total DIFAL da Nota:</strong> R$ ${row.TotalDIFAL}
           </p>
-          <p style="margin: 0 0 8px; font-size: 13px; color: #555;">
-            <strong>Valor Item:</strong> R$ ${row.ValorDIFAL} | <strong>Total NFe:</strong> R$ ${row.TotalDIFAL}
-          </p>
-          <p style="margin: 0 0 8px; font-size: 12px; color: #777; word-break: break-all;">
+          
+          <p style="margin: 8px 0 0; font-size: 11px; color: #777; word-break: break-all; background: #fff; padding: 6px; border-radius: 4px; border: 1px dashed #ddd;">
             <strong>Chave:</strong> ${row.Chave}
           </p>
-          ${row.Obs_NF ? `<p style="margin: 0; font-size: 12px; color: #d32f2f;"><strong>Obs:</strong> ${row.Obs_NF}</p>` : ""}
+          ${row.Obs_NF ? `<p style="margin: 6px 0 0; font-size: 12px; color: #d32f2f;"><strong>Obs:</strong> ${row.Obs_NF}</p>` : ""}
         </div>
-      `,
-        )
+        `;
+        })
         .join("");
 
       difalHtml = `
