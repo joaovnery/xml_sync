@@ -5,98 +5,111 @@ import { MailService } from "../services/mailSerivce";
 import { StorageService } from "../services/storageService";
 import { ChatService } from "../services/chatService";
 import { StateManager } from "../utils/stateManager";
+import { Logger } from "../utils/logger";
+import { envConfig } from "../config/env";
 
 export const startCronJobs = () => {
-  const cronSchedule = process.env.CRON_SCHEDULE || `* * * * *`;
-  console.log(`[Sistema] Robô de Sincronização Iniciado! Cron ${cronSchedule}`);
+  const cronSchedule = envConfig.CRON_SCHEDULE || `* * * * *`;
+  Logger.info(
+    "Cron",
+    `Robô de sincronização iniciado — Agenda: ${cronSchedule}`,
+  );
 
   const xmlService = new XmlService();
   const mailService = new MailService();
   const storageService = new StorageService();
   const chatService = new ChatService();
-  const getClient = process.env.CLIENT_NAME || "";
+  const getClient = envConfig.CLIENT_NAME || "";
 
   let isRunning = false;
 
   cron.schedule(cronSchedule, async () => {
     if (isRunning) {
-      console.log(
-        `[Cron] [Aviso] A execução anterior ainda não terminou. Pulando está rodada para evitar duplicados`,
+      Logger.warn(
+        "Cron",
+        "Execução anterior ainda em andamento — pulando esta rodada",
       );
+      return;
     }
 
     // ------- Pilecco ------- //
 
-    if (process.env.CLIENT_NAME === "Pilecco") {
-      console.log(`\n[Cron] Acordando para executar tarefa...`);
-      console.log(`[Cron] Cliente: ${getClient}\n`);
+    if (envConfig.CLIENT_NAME === "Pilecco") {
+      Logger.separator();
+      Logger.info("Cron", `Iniciando execução — Cliente: ${getClient}`);
       try {
         isRunning = true;
         const dateNow = getDateNow();
         const { map, filaIds } = await xmlService.fetchXmlsPilecco();
 
         if (!map || map.size === 0) {
-          console.log(
-            `\n[Cron] Nenhum XML para processar. Voltando a dormir...`,
+          Logger.info(
+            "Cron",
+            "Nenhum XML pendente encontrado — aguardando próximo ciclo",
           );
 
           // await chatService.sendMessage(map.size);
           return;
         }
 
-        console.log(
-          `[Cron] Encontradas ${map.size} novas notas. Gerando ZIP...`,
+        Logger.info(
+          "Cron",
+          `${map.size} nota(s) pendente(s) encontrada(s) — gerando ZIP`,
         );
         const zipPath = await storageService.compressAndSave(
           map,
           `notas_${getClient}_${dateNow}.zip`,
         );
-        await mailService.sendZipReportPilecco(zipPath as string);
+
+        const difalData = await xmlService.fetchDifalData(filaIds);
+
+        await mailService.sendZipReportPilecco(zipPath as string, difalData);
 
         await xmlService.markAsSent(filaIds);
 
         await chatService.sendMessagePilecco(map.size);
       } catch (error) {
-        console.error(
-          `Erro ao executar CRON, Cliente: ${process.env.CLIENT_NAME}, Error: ${error}`,
+        Logger.error(
+          "Cron",
+          `Falha na execução — Cliente: ${getClient}`,
+          error,
         );
-
-        throw error;
       } finally {
         isRunning = false;
-        return;
       }
     }
 
     // --------- Mebuki --------------- //
 
-    if (process.env.CLIENT_NAME === "Mebuki") {
+    if (envConfig.CLIENT_NAME === "Mebuki") {
       const dateNow = getDateNow();
-      const lookbackDays = parseInt(process.env.LOOKBACKDAYS || "1");
+      const lookbackDays = parseInt(envConfig.LOOKBACKDAYS || "1");
       const { iniDate, endDate } = getDynamicsDates(lookbackDays);
 
       try {
-        console.log(`\n[Cron] Acordando para executar tarefa...`);
-        console.log(`[Cron] Cliente: ${getClient}`);
+        Logger.separator();
+        Logger.info("Cron", `Iniciando execução — Cliente: ${getClient}`);
 
         isRunning = true;
 
-        const useFixDate = process.env.USE_FIX_DATE === "true";
+        const useFixDate = envConfig.USE_FIX_DATE === "true";
         const finalIniDate = useFixDate
-          ? (process.env.INI_DATE as string)
+          ? (envConfig.INI_DATE as string)
           : iniDate;
 
         const finalEndDate = useFixDate
-          ? (process.env.END_DATE as string)
+          ? (envConfig.END_DATE as string)
           : endDate;
 
         if (useFixDate) {
-          console.log(
-            `[Cron] Atenção: Usando datas Fixas do .env (${finalIniDate} a ${finalEndDate})\n`,
+          Logger.warn(
+            "Cron",
+            `Usando datas FIXAS do .env: ${finalIniDate} → ${finalEndDate}`,
           );
         } else {
-          console.log(
-            `[Cron] Usando período dinâmico de ${lookbackDays} dia(s) ${finalIniDate} a ${finalEndDate}\n`,
+          Logger.info(
+            "Cron",
+            `Período dinâmico: ${lookbackDays} dia(s) — ${finalIniDate} → ${finalEndDate}`,
           );
         }
 
@@ -106,8 +119,9 @@ export const startCronJobs = () => {
         );
 
         if (!map || map.size === 0) {
-          console.log(
-            `\n[Cron] Nenhum XML para processar na data informada. Voltando a dormir...`,
+          Logger.info(
+            "Cron",
+            "Nenhum XML novo encontrado para o período — aguardando próximo ciclo",
           );
           await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
           return;
@@ -129,16 +143,18 @@ export const startCronJobs = () => {
           await StateManager.addProcessedKeys(newlyFetchedKeys);
         }
 
-        console.log(`\n[Cron] Tarefa concluída com sucesso!`);
-      } catch (error) {
-        console.error(
-          `Erro ao executar CRON, Cliente: ${process.env.CLIENT_NAME}, Error: ${error}`,
+        Logger.success(
+          "Cron",
+          `Tarefa concluída — ${map.size} nota(s) processada(s) e enviada(s)`,
         );
-
-        throw error;
+      } catch (error) {
+        Logger.error(
+          "Cron",
+          `Falha na execução — Cliente: ${getClient}`,
+          error,
+        );
       } finally {
         isRunning = false;
-        return;
       }
     }
   });

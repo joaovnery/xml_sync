@@ -1,27 +1,41 @@
 import { formatDateForUTCBrazil } from "../utils/date.utils";
+import { Logger } from "../utils/logger";
+import { envConfig } from "../config/env";
 
 export class ChatService {
   private webhookUrl: string;
 
   constructor() {
-    this.webhookUrl = process.env.GOOGLE_CHAT_WEBHOOK_URL || "";
+    this.webhookUrl = envConfig.GOOGLE_CHAT_WEBHOOK_URL || "";
   }
 
-  async sendMessage(quantityXmls: number, iniDate?: string, endDate?: string) {
-    const formatIniDate = formatDateForUTCBrazil(iniDate as string);
-    const formatEndDate = formatDateForUTCBrazil(endDate as string);
+  async sendMessage(quantityXmls: number, iniDate: string, endDate: string) {
+    const formatIniDate = formatDateForUTCBrazil(iniDate);
+    const formatEndDate = formatDateForUTCBrazil(endDate);
 
     try {
-      console.log(
-        "\n[Chat Service] Enviando notificação para o Google Chat...",
-      );
+      Logger.info("Google Chat", "Enviando notificação para o Google Chat");
 
       let message: string;
 
-      message = `Cliente: ${process.env.CLIENT_NAME} \n Notas sincronizadas e enviadas com sucesso - data do periodo ${formatIniDate} a ${formatEndDate} - \n Quantidade de XMLs coletados: ${quantityXmls}. - E-mail Enviado com sucesso!`;
-
       if (quantityXmls === 0) {
-        message = `Cliente: ${process.env.CLIENT_NAME} \n Não foram encontradas Notas para o período informado: ${formatIniDate} a ${formatEndDate}, com isso não enviaremos o E-mail.`;
+        message = [
+          `ℹ️ *Nenhuma Nota Encontrada*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `📅 *Período:* ${formatIniDate} → ${formatEndDate}`,
+          `📦 *XMLs coletados:* 0`,
+          `📧 *E-mail:* Não enviado (sem notas no período)`,
+        ].join("\n");
+      } else {
+        message = [
+          `✅ *Sincronização Concluída*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `📅 *Período:* ${formatIniDate} → ${formatEndDate}`,
+          `📦 *XMLs coletados:* ${quantityXmls}`,
+          `📧 *E-mail:* Enviado com sucesso`,
+        ].join("\n");
       }
 
       await fetch(this.webhookUrl, {
@@ -30,18 +44,28 @@ export class ChatService {
         body: JSON.stringify({ text: message }),
       });
 
-      console.log("[Chat Service] Notificação Enviada com sucesso!\n");
+      Logger.success("Google Chat", "Notificação enviada com sucesso");
     } catch (error) {
       try {
-        const errorMessage = `Cliente: ${process.env.CLIENT_NAME} \n Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+        const errorMessage = [
+          `🚨 *FALHA NA SINCRONIZAÇÃO*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `❌ *Erro:* ${error instanceof Error ? error.message : String(error)}`,
+          ``,
+          `⚠️ Verifique os logs do servidor para mais detalhes.`,
+        ].join("\n");
+
         await fetch(this.webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: errorMessage }),
         });
-      } catch (error) {
-        console.error(
-          `[Chat Service] Erro fatal: Impossível se comunicar com o Google Chat: ${error}`,
+      } catch (innerError) {
+        Logger.error(
+          "Google Chat",
+          "Falha crítica — impossível comunicar com o Google Chat",
+          innerError,
         );
       }
 
@@ -51,16 +75,26 @@ export class ChatService {
 
   async sendMessagePilecco(quantityXmls: number) {
     try {
-      console.log(
-        "\n[Chat Service] Enviando notificação para o Google Chat...",
-      );
+      Logger.info("Google Chat", "Enviando notificação para o Google Chat");
 
       let message: string;
 
-      message = `Cliente: ${process.env.CLIENT_NAME} \n XML enviado com sucesso, E-mail Enviado com sucesso!`;
-
       if (quantityXmls === 0) {
-        message = `Cliente: ${process.env.CLIENT_NAME} \n Não foi en com isso não enviaremos o E-mail.`;
+        message = [
+          `ℹ️ *Nenhuma Nota Pendente*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `📦 *XMLs encontrados:* 0`,
+          `📧 *E-mail:* Não enviado (sem notas pendentes)`,
+        ].join("\n");
+      } else {
+        message = [
+          `✅ *Sincronização Concluída*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `📦 *XMLs enviados:* ${quantityXmls}`,
+          `📧 *E-mail:* Enviado com sucesso`,
+        ].join("\n");
       }
 
       await fetch(this.webhookUrl, {
@@ -69,18 +103,28 @@ export class ChatService {
         body: JSON.stringify({ text: message }),
       });
 
-      console.log("[Chat Service] Notificação Enviada com sucesso!\n");
+      Logger.success("Google Chat", "Notificação enviada com sucesso");
     } catch (error) {
       try {
-        const errorMessage = `Cliente: ${process.env.CLIENT_NAME} \n Alerta - Falha na sincronização de XMLs - Robo falhou.* ${error}`;
+        const errorMessage = [
+          `🚨 *FALHA NA SINCRONIZAÇÃO*`,
+          ``,
+          `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
+          `❌ *Erro:* ${error instanceof Error ? error.message : String(error)}`,
+          ``,
+          `⚠️ Verifique os logs do servidor para mais detalhes.`,
+        ].join("\n");
+
         await fetch(this.webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: errorMessage }),
         });
-      } catch (error) {
-        console.error(
-          `[Chat Service] Erro fatal: Impossível se comunicar com o Google Chat: ${error}`,
+      } catch (innerError) {
+        Logger.error(
+          "Google Chat",
+          "Falha crítica — impossível comunicar com o Google Chat",
+          innerError,
         );
 
         throw error;

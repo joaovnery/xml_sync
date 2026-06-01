@@ -1,7 +1,7 @@
 {
-  "name": "pilleco_sendxmls",
+  "name": "xml_sync",
   "version": "1.0.0",
-  "description": "Boilerplate project for pilleco_sendxmls",
+  "description": "xml_sync",
   "main": "src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",

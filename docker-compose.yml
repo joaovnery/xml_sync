@@ -1,13 +1,13 @@
 version: "3.8"
 services:
   pilecco_xml_sync:
-    image: ghrc.io/joaovnery/xml_sync:latest
+    image: ghcr.io/joaovnery/xml_sync:latest
     container_name: xml_sync_container
-    restart: unless_stopped
+    restart: unless-stopped
     environment:
       - .env
     ports:
       - "${PORT:-3333}:${PORT:-3333}"
     volumes:
-      - ./xmlsColetados:/app/xmlsColetados
+      - ./xmls_coletados:/app/xmls_coletados
       - ./data:/app/data

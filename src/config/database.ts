@@ -10,3 +10,8 @@ export const dbConnection = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+process.on("SIGTERM", async () => {
+  await dbConnection.end();
+  process.exit(0);
+});

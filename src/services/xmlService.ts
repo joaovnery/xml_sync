@@ -1,15 +1,32 @@
 import { dbConnection } from "../config/database";
 import { RowDataPacket } from "mysql2/promise";
-import path from "path";
 import { StateManager } from "../utils/stateManager";
+import { Logger } from "../utils/logger";
 
-const XMLS_DIR = path.resolve(__dirname, "../../xmls_coletados");
+export interface DifalRow extends RowDataPacket {
+  Loja: number;
+  UF: string;
+  NF: number;
+  Sr: string;
+  Emissao: string;
+  BaseICMS_: string;
+  "Al_Interna%": number;
+  ValorICMS: string;
+  "Al_Destin%": number;
+  ValorDIFAL: string;
+  TotalDIFAL: string;
+  Chave: string;
+  Obs_NF: string;
+}
 
 export class XmlService {
   async fetchXmlsPilecco() {
     const map: Map<string, string> = new Map();
     const filaIds: number[] = [];
-    console.log(`[XML Service] Iniciando busca de XMLs...`);
+    Logger.info(
+      "XML Service",
+      "Consultando notas com status PENDENTE no banco de dados",
+    );
 
     const [rows] = await dbConnection.query<RowDataPacket[]>(
       `
@@ -34,6 +51,11 @@ export class XmlService {
       filaIds.push(invoice.fila_id);
     }
 
+    Logger.info(
+      "XML Service",
+      `Consulta finalizada — ${map.size} nota(s) pendente(s) encontrada(s)`,
+    );
+
     return { map, filaIds };
   }
 
@@ -48,22 +70,92 @@ export class XmlService {
         filaIds,
       );
 
-      console.log(
-        `[XML Service] ${filaIds.length} notas atualizadas para ENVIADO.`,
+      Logger.success(
+        "XML Service",
+        `${filaIds.length} nota(s) atualizada(s) para status ENVIADO`,
       );
     } catch (error) {
-      console.error(`[XML Service] Erro ao atualizar status na fila:`, error);
+      Logger.error(
+        "XML Service",
+        "Falha ao atualizar status das notas na fila",
+        error,
+      );
       throw error;
     }
   }
+
+  async fetchDifalData(filaIds: number[]): Promise<DifalRow[]> {
+    if (filaIds.length === 0) return [];
+
+    Logger.info(
+      "XML Service",
+      `Buscando dados de DIFAL para ${filaIds.length} nota(s)`,
+    );
+
+    try {
+      const [rows] = await dbConnection.query<DifalRow[]>(
+        `
+        SELECT
+            nf.storeno                                   AS Loja,
+            IFNULL(ctadd.state, custp.state1)            AS UF, 
+            nf.nfno                                      AS NF,
+            nf.nfse                                      AS Sr,
+            DATE_FORMAT(nf.issuedate, '%d/%m/%y')        AS Emissao,   
+            FORMAT(X.baseCalculoIcms / 100, 2, 'de_DE')  AS BaseICMS_,
+            X.l2 / 100                                   AS 'Al_Interna%',
+            FORMAT(X.icmsAmt / 100, 2, 'de_DE')          AS ValorICMS,
+            X.l4 / 100                                   AS 'Al_Destin%',
+            FORMAT(X.m3 / 100, 2, 'de_DE')               AS ValorDIFAL,
+            FORMAT(nf.icmsUfDest / 100, 2, 'de_DE')      AS TotalDIFAL,
+            nfeav.nfKey                                  AS Chave,  
+            xaprdm.msg                                   AS Obs_NF    
+        FROM
+            sqldados.fila_envio_xml AS fila
+        INNER JOIN sqldados.nfeav AS nfeav ON nfeav.nfKey = fila.nfKey AND nfeav.storeno = fila.storeno
+        INNER JOIN sqldados.xaprd2 AS X ON X.xano = nfeav.xano AND X.storeno = nfeav.storeno
+        INNER JOIN sqldados.nf AS nf ON nf.xano = X.xano AND nf.storeno = X.storeno AND nf.nfno = X.nfno AND nf.nfse = X.nfse
+        LEFT JOIN sqldados.xaprd3 ON xaprd3.xano = X.xano AND xaprd3.storeno = X.storeno AND xaprd3.pdvno = X.pdvno AND xaprd3.prdno = X.prdno AND xaprd3.grade = X.grade
+        LEFT JOIN sqldados.xaprdm ON xaprdm.xano = X.xano AND xaprdm.storeno = X.storeno 
+        LEFT JOIN sqldados.custp ON custp.no = nf.custno
+        LEFT JOIN sqldados.cfo ON cfo.no = nf.cfo
+        LEFT JOIN sqldados.nfr ON nfr.custno = nf.custno AND nfr.auxLong1 = nf.eordno
+        LEFT JOIN sqldados.ctadd ON ctadd.custno = nfr.custno AND ctadd.seqno = nfr.auxShort1
+        WHERE
+            fila.id IN (?)          AND 
+            nf.cfo > 0              AND
+            nf.status = 0           AND
+            ((X.m3 > 0) OR (xaprd3.auxMy6 > 0)) AND
+            xaprdm.msg LIKE 'Valores%'
+        GROUP BY 
+            X.xano, X.storeno, X.prdno, nfeav.nfKey, xaprdm.msg
+        ORDER BY
+            nf.storeno, nf.cfo, nf.issuedate, nf.nfno;
+      `,
+        [filaIds],
+      );
+
+      Logger.info(
+        "XML Service",
+        `${rows.length} registro(s) de DIFAL encontrado(s)`,
+      );
+
+      return rows;
+    } catch (error) {
+      Logger.error("XML Service", "Falha ao buscar dados de DIFAL", error);
+      throw error;
+    }
+  }
+
+  // ----------- Mebuki --------- \\
 
   async fetchXmlsMebuki(
     iniDate: string,
     endDate: string,
   ): Promise<{ map: Map<string, string>; newlyFetchedKeys: string[] }> {
     const map: Map<string, string> = new Map();
-    console.log(
-      `[XML Service] Iniciando busca para as datas ${iniDate} a ${endDate}...`,
+    Logger.info(
+      "XML Service",
+      `Consultando notas no banco — Período: ${iniDate} → ${endDate}`,
     );
 
     try {
@@ -76,7 +168,13 @@ export class XmlService {
           nf.nfkey, 
           nf.date, 
           nf.storeno, 
-          x.xml 
+          x.xml Loja: number;
+          UF: string;
+          NF: number;
+          Sr: string;
+          Emissao: string;
+          BaseICMS_: string;
+          "Al_Interna%": string;
         FROM nfeav nf 
         INNER JOIN nfeavxml x 
         ON nf.nfkey = x.nfkey 
@@ -87,7 +185,10 @@ export class XmlService {
       );
 
       if (rows.length === 0) {
-        console.error(`[XML Service] Nenhum XML foi encontrado neste período.`);
+        Logger.info(
+          "XML Service",
+          "Nenhuma nota encontrada para o período consultado",
+        );
         return { map, newlyFetchedKeys: [] };
       }
 
@@ -104,13 +205,18 @@ export class XmlService {
         newlyFetchedKeys.push(invoices.nfkey);
       }
 
-      console.log(`[XML Service] XMLs encontrados: ${map.size}`);
-      console.log(`[XML Service] XMLs coletados: ${map.size}`);
-      console.log(`[XML Service] Sucesso! Todos os XMLs salvos fisicamente!`);
+      Logger.info(
+        "XML Service",
+        `${rows.length} nota(s) retornada(s) do banco — ${ignoreDuplicates} duplicada(s) ignorada(s) — ${map.size} nova(s) para processar`,
+      );
 
       return { map, newlyFetchedKeys };
     } catch (error) {
-      console.error(`erro ao realizar busca ${error}`);
+      Logger.error(
+        "XML Service",
+        "Falha ao consultar notas no banco de dados",
+        error,
+      );
       throw error;
     }
   }

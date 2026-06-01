@@ -4,3 +4,4 @@ xmls_coletados
 dbdev_mysql.yml
 dist
 tests
+data

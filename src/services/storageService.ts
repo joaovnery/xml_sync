@@ -1,12 +1,14 @@
 import fs from "fs";
 import path from "path";
 import archiver from "archiver";
+import { Logger } from "../utils/logger";
 
 export class StorageService {
   async compressAndSave(xmlsMap: Map<string, string>, fileName: string) {
     return new Promise((resolve, reject) => {
-      console.log(
-        `\n[Storage Service] Preparando para compactar os arquivos...`,
+      Logger.info(
+        "Storage",
+        `Compactando ${xmlsMap.size} arquivo(s) XML em ${fileName}`,
       );
 
       const destDir = path.resolve(__dirname, "..", "..", "xmls_coletados");
@@ -23,13 +25,16 @@ export class StorageService {
       });
 
       output.on("close", () => {
-        console.log(
-          `[Storage Service] Arquivo Zip gerado ${archive.pointer()} Bytes com sucesso!`,
+        const sizeKB = (archive.pointer() / 1024).toFixed(2);
+        Logger.success(
+          "Storage",
+          `ZIP gerado com sucesso — ${sizeKB} KB (${archive.pointer()} bytes)`,
         );
         resolve(fullPath);
       });
 
       archive.on("error", (err) => {
+        Logger.error("Storage", "Falha ao gerar arquivo ZIP", err);
         reject(err);
       });
 

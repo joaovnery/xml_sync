@@ -1,11 +1,13 @@
 import "dotenv/config";
 import express from "express";
 import { startCronJobs } from "./jobs/cron";
+import { Logger } from "./utils/logger";
+import { envConfig } from "./config/env";
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = envConfig.PORT;
 
 app.listen(PORT, () => {
-  console.log(`[Sistema] Servidor executando na Porta: ${PORT}`);
+  Logger.success("Servidor", `Servidor iniciado com sucesso na porta ${PORT}`);
   startCronJobs();
 });

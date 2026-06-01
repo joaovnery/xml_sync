@@ -8,12 +8,6 @@ export const getDynamicsDates = (lookbackDays: number) => {
 
   iniDate.setDate(iniDate.getDate() - lookbackDays);
 
-  // if (lookbackDays >= 1) {
-  //   endDate.setDate(endDate.getDate() - 1);
-  // } else {
-  //   endDate.setDate(endDate.getDate());
-  // }
-
   const formatLocal = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
