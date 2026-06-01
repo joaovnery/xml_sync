@@ -110,16 +110,16 @@ export class XmlService {
             nfeav.nfKey                                  AS Chave,  
             xaprdm.msg                                   AS Obs_NF    
         FROM
-            sqldados.fila_envio_xml AS fila
-        INNER JOIN sqldados.nfeav AS nfeav ON nfeav.nfKey = fila.nfKey AND nfeav.storeno = fila.storeno
-        INNER JOIN sqldados.xaprd2 AS X ON X.xano = nfeav.xano AND X.storeno = nfeav.storeno
-        INNER JOIN sqldados.nf AS nf ON nf.xano = X.xano AND nf.storeno = X.storeno AND nf.nfno = X.nfno AND nf.nfse = X.nfse
-        LEFT JOIN sqldados.xaprd3 ON xaprd3.xano = X.xano AND xaprd3.storeno = X.storeno AND xaprd3.pdvno = X.pdvno AND xaprd3.prdno = X.prdno AND xaprd3.grade = X.grade
-        LEFT JOIN sqldados.xaprdm ON xaprdm.xano = X.xano AND xaprdm.storeno = X.storeno 
-        LEFT JOIN sqldados.custp ON custp.no = nf.custno
-        LEFT JOIN sqldados.cfo ON cfo.no = nf.cfo
-        LEFT JOIN sqldados.nfr ON nfr.custno = nf.custno AND nfr.auxLong1 = nf.eordno
-        LEFT JOIN sqldados.ctadd ON ctadd.custno = nfr.custno AND ctadd.seqno = nfr.auxShort1
+            fila_envio_xml AS fila
+        INNER JOIN nfeav AS nfeav ON nfeav.nfKey = fila.nfKey AND nfeav.storeno = fila.storeno
+        INNER JOIN xaprd2 AS X ON X.xano = nfeav.xano AND X.storeno = nfeav.storeno
+        INNER JOIN nf AS nf ON nf.xano = X.xano AND nf.storeno = X.storeno AND nf.nfno = X.nfno AND nf.nfse = X.nfse
+        LEFT JOIN xaprd3 ON xaprd3.xano = X.xano AND xaprd3.storeno = X.storeno AND xaprd3.pdvno = X.pdvno AND xaprd3.prdno = X.prdno AND xaprd3.grade = X.grade
+        LEFT JOIN xaprdm ON xaprdm.xano = X.xano AND xaprdm.storeno = X.storeno 
+        LEFT JOIN custp ON custp.no = nf.custno
+        LEFT JOIN cfo ON cfo.no = nf.cfo
+        LEFT JOIN nfr ON nfr.custno = nf.custno AND nfr.auxLong1 = nf.eordno
+        LEFT JOIN ctadd ON ctadd.custno = nfr.custno AND ctadd.seqno = nfr.auxShort1
         WHERE
             fila.id IN (?)          AND 
             nf.cfo > 0              AND
