@@ -160,8 +160,16 @@ export class XmlServiceMebuki {
   async fetchXmlsAvanco(
     iniDate: string,
     endDate: string,
-  ): Promise<{ map: Map<string, string>; newlyFetchedKeys: string[] }> {
-    const map: Map<string, string> = new Map();
+  ): Promise<{
+    mapSerie3: Map<string, string>;
+    mapSerie4: Map<string, string>;
+    mapSerie5: Map<string, string>;
+    newlyFetchedKeys: string[];
+  }> {
+    const mapSerie3: Map<string, string> = new Map();
+    const mapSerie4: Map<string, string> = new Map();
+    const mapSerie5: Map<string, string> = new Map();
+
     Logger.info(
       "XML Service",
       `Consultando notas no banco — Período: ${iniDate} → ${endDate}`,
@@ -169,50 +177,109 @@ export class XmlServiceMebuki {
 
     try {
       const processedKeys = await StateManager.getProcessedKeys();
-
-      const [rows] = await dbConnection.query<RowDataPacket[]>(
-        `
-        SELECT 
-          nf.nfno, 
-          nf.nfkey, 
-          nf.date, 
-          nf.storeno, 
-        FROM nfeav nf 
-        INNER JOIN nfeavxml x 
-        ON nf.nfkey = x.nfkey 
-        WHERE nf.storeno = ?
-        AND nf.date BETWEEN ? AND ?;
-      `,
-        [1, iniDate, endDate],
-      );
-
-      if (rows.length === 0) {
-        Logger.info(
-          "XML Service",
-          "Nenhuma nota encontrada para o período consultado",
-        );
-        return { map, newlyFetchedKeys: [] };
-      }
-
       let ignoreDuplicates = 0;
       const newlyFetchedKeys: string[] = [];
 
-      for (const invoices of rows) {
-        if (processedKeys.includes(invoices.nfkey)) {
-          ignoreDuplicates++;
-          continue;
-        }
+      // 1. Consulta Avanço (Série 3)
+      const [rowsAvanco] = await dbConnection.query<RowDataPacket[]>(
+        `
+        SELECT nf.nfno, nf.nfkey, nf.date, nf.storeno, x.xml 
+        FROM nfeav nf 
+        INNER JOIN nfeavxml x ON nf.nfkey = x.nfkey 
+        WHERE nf.storeno = ? AND nf.date BETWEEN ? AND ?;
+        `,
+        [1, iniDate, endDate],
+      );
 
-        map.set(invoices.nfkey, invoices.xml);
-        newlyFetchedKeys.push(invoices.nfkey);
+      // 2. Consulta Venda (Séries 4 e 5)
+      const [rowsVenda] = await dbConnection.query<RowDataPacket[]>(
+        `
+        SELECT L.nfkey AS chaveAcesso, N.nfse AS serieNota, L.xml 
+        FROM nf N 
+        INNER JOIN nfeavxml L USING (xano, storeno, pdvno) 
+        WHERE N.issuedate = ? AND N.storeno = ? AND N.nfse IN (?, ?);
+        `,
+        [iniDate, 1, 4, 5],
+      );
+
+      // 3. Consulta Devolução/Retorno (Séries 4 e 5)
+      const [rowsDevRet] = await dbConnection.query<RowDataPacket[]>(
+        `
+        SELECT X.nfekey AS chaveAcesso, I.invse AS serieNota, L.xml 
+        FROM inv I 
+        INNER JOIN invnfe X USING (invno, storeno) 
+        LEFT JOIN nfeavxml L ON (L.xano = X.xano AND L.nfkey = X.nfekey AND L.storeno = X.storeno) 
+        WHERE I.issue_date = ? AND I.storeno = ? AND I.invse IN (?, ?);
+        `,
+        [iniDate, 1, 4, 5],
+      );
+
+      // 4. Consulta Canceladas (Séries 4 e 5)
+      const [rowsCancel] = await dbConnection.query<RowDataPacket[]>(
+        `
+        SELECT nf2.nfekey AS chaveAcesso, nf.nfse AS serieNota, nfeavxml.xml
+        FROM nf 
+        INNER JOIN nf2 ON nf.storeno = nf2.storeno AND nf.pdvno = nf2.pdvno AND nf.xano = nf2.xano 
+        LEFT JOIN nfeavxml ON nf2.nfekey = nfeavxml.nfKey 
+        LEFT JOIN eordchannelp ON nf.storeno = eordchannelp.storeno AND nf.eordno = eordchannelp.ordno 
+        LEFT JOIN eord ON eord.storeno = eordchannelp.storeno AND eord.ordno = eordchannelp.ordno 
+        WHERE (nf.storeno = ? AND (nf.bits2 & 1 != 0 OR eord.s9 & 64 != 0) AND (nf.status = 1 OR nf2.status = 4) AND nf.bits2 & 16 = 0 AND nf.issuedate = ?)
+        UNION ALL
+        SELECT invnfe.nfekey AS chaveAcesso, inv.invse AS serieNota, nfeavxml.xml
+        FROM inv 
+        INNER JOIN invnfe ON inv.invno = invnfe.invno AND inv.storeno = invnfe.storeno 
+        LEFT JOIN nfeavxml ON invnfe.nfekey = nfeavxml.nfKey 
+        WHERE (inv.storeno = ? AND inv.bits4 & 512 != 0 AND inv.bits & 16 != 0 AND inv.bits4 & 32768 = 0 AND inv.issue_date = ?);
+        `,
+        [1, iniDate, 1, iniDate],
+      );
+
+      // Função inteligente para separar nas caixinhas certas
+      const processarNotas = (
+        rows: any[],
+        chaveColuna: string,
+        seriePadrao?: number,
+      ) => {
+        for (const nota of rows) {
+          const key = nota[chaveColuna];
+
+          if (processedKeys.includes(key)) {
+            ignoreDuplicates++;
+            continue;
+          }
+
+          const serie = seriePadrao || nota.serieNota;
+
+          if (serie === 3) mapSerie3.set(key, nota.xml);
+          else if (serie === 4) mapSerie4.set(key, nota.xml);
+          else if (serie === 5) mapSerie5.set(key, nota.xml);
+
+          newlyFetchedKeys.push(key);
+        }
+      };
+
+      processarNotas(rowsAvanco, "nfkey", 3); // Força série 3 para as da Avanço
+      processarNotas(rowsVenda, "chaveAcesso");
+      processarNotas(rowsDevRet, "chaveAcesso");
+      processarNotas(rowsCancel, "chaveAcesso");
+
+      const totalNotas =
+        rowsAvanco.length +
+        rowsVenda.length +
+        rowsDevRet.length +
+        rowsCancel.length;
+      const totalNovas = mapSerie3.size + mapSerie4.size + mapSerie5.size;
+
+      if (totalNotas === 0) {
+        return { mapSerie3, mapSerie4, mapSerie5, newlyFetchedKeys: [] };
       }
 
       Logger.info(
         "XML Service",
-        `${rows.length} nota(s) retornada(s) do banco — ${ignoreDuplicates} duplicada(s) ignorada(s) — ${map.size} nova(s) para processar`,
+        `Total banco: ${totalNotas} — Duplicadas: ${ignoreDuplicates} — Novas para zip: ${totalNovas}`,
       );
 
-      return { map, newlyFetchedKeys };
+      return { mapSerie3, mapSerie4, mapSerie5, newlyFetchedKeys };
     } catch (error) {
       Logger.error(
         "XML Service",

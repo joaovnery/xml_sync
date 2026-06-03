@@ -97,48 +97,66 @@ export const startCronJobs = () => {
         const finalIniDate = useFixDate
           ? (envConfig.INI_DATE as string)
           : iniDate;
-
         const finalEndDate = useFixDate
           ? (envConfig.END_DATE as string)
           : endDate;
 
-        if (useFixDate) {
-          Logger.warn(
-            "Cron",
-            `Usando datas FIXAS do .env: ${finalIniDate} → ${finalEndDate}`,
-          );
-        } else {
-          Logger.info(
-            "Cron",
-            `Período dinâmico: ${lookbackDays} dia(s) — ${finalIniDate} → ${finalEndDate}`,
-          );
-        }
+        // 1. Recebe os Maps já separados por série
+        let { mapSerie3, mapSerie4, mapSerie5, newlyFetchedKeys } =
+          await xmlServiceMebuki.fetchXmlsAvanco(finalIniDate, finalEndDate);
 
-        let { map, newlyFetchedKeys } = await xmlServiceMebuki.fetchXmlsAvanco(
-          finalIniDate,
-          finalEndDate,
-        );
+        const totalSize = mapSerie3.size + mapSerie4.size + mapSerie5.size;
 
-        if (!map || map.size === 0) {
+        if (totalSize === 0) {
           Logger.info(
             "Cron",
             "Nenhum XML novo encontrado para o período — aguardando próximo ciclo",
           );
-          await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+          await chatService.sendMessage(totalSize, finalIniDate, finalEndDate);
           return;
         }
 
-        const zipPath = await storageService.compressAndSave(
-          map,
-          `notas_${getClient}_${dateNow}.zip`,
-        );
+        // 2. Compacta e envia a Série 3 (se existir)
+        if (mapSerie3.size > 0) {
+          const zipPath3 = await storageService.compressAndSave(
+            mapSerie3,
+            `notas_Serie3_${getClient}_${dateNow}.zip`,
+          );
+          await mailService.sendZipsReport(
+            zipPath3 as string,
+            finalIniDate,
+            finalEndDate,
+          );
+        }
 
-        await mailService.sendZipsReport(
-          zipPath as string,
-          finalIniDate,
-          finalEndDate,
-        );
-        await chatService.sendMessage(map.size, finalIniDate, finalEndDate);
+        // 3. Compacta e envia a Série 4 (se existir)
+        if (mapSerie4.size > 0) {
+          const zipPath4 = await storageService.compressAndSave(
+            mapSerie4,
+            `notas_Serie4_${getClient}_${dateNow}.zip`,
+          );
+          await mailService.sendZipsReport(
+            zipPath4 as string,
+            finalIniDate,
+            finalEndDate,
+          );
+        }
+
+        // 4. Compacta e envia a Série 5 (se existir)
+        if (mapSerie5.size > 0) {
+          const zipPath5 = await storageService.compressAndSave(
+            mapSerie5,
+            `notas_Serie5_${getClient}_${dateNow}.zip`,
+          );
+          await mailService.sendZipsReport(
+            zipPath5 as string,
+            finalIniDate,
+            finalEndDate,
+          );
+        }
+
+        // 5. Finaliza o processo enviando pro chat e salvando o ledger
+        await chatService.sendMessage(totalSize, finalIniDate, finalEndDate);
 
         if (newlyFetchedKeys.length > 0) {
           await StateManager.addProcessedKeys(newlyFetchedKeys);
@@ -146,7 +164,7 @@ export const startCronJobs = () => {
 
         Logger.success(
           "Cron",
-          `Tarefa concluída — ${map.size} nota(s) processada(s) e enviada(s)`,
+          `Tarefa concluída — ${totalSize} nota(s) processada(s) e enviada(s) divididas por série.`,
         );
       } catch (error) {
         Logger.error(
