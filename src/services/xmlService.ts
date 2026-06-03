@@ -248,7 +248,8 @@ export class XmlServiceMebuki {
             continue;
           }
 
-          const serie = seriePadrao || nota.serieNota;
+          // Correção aqui: garantindo que o valor seja tratado como número
+          const serie = seriePadrao || Number(nota.serieNota);
 
           if (serie === 3) mapSerie3.set(key, nota.xml);
           else if (serie === 4) mapSerie4.set(key, nota.xml);
