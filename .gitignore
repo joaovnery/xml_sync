@@ -5,3 +5,4 @@ dbdev_mysql.yml
 dist
 tests
 data
+.airules

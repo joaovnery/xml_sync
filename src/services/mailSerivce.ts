@@ -20,7 +20,7 @@ export class MailService {
     });
   }
 
-  async sendZipsReport(file: string, iniDate: string, endDate: string) {
+  async sendZipsReport(files: string[], iniDate: string, endDate: string) {
     Logger.info(
       "E-mail",
       `Preparando envio — De: ${envConfig.EMAIL_SENDER} | Para: ${envConfig.EMAIL_RECIPIENT} | CC: ${envConfig.EMAIL_CC}`,
@@ -43,7 +43,7 @@ export class MailService {
             <div style="background: #ffffff; padding: 24px; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
               <p style="margin: 0 0 16px; color: #333;">Prezados,</p>
               <p style="margin: 0 0 16px; color: #333;">
-                Segue em anexo o arquivo ZIP contendo as notas fiscais eletrônicas (NF-e)
+                Seguem em anexo os arquivos ZIP contendo as notas fiscais eletrônicas (NF-e)
                 emitidas durante o período de <strong>${formatIniDate}</strong>.
               </p>
               <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
@@ -59,7 +59,10 @@ export class MailService {
             </div>
           </div>
         `,
-        attachments: [{ filename: path.basename(file), path: file }],
+        attachments: files.map((file) => ({
+          filename: path.basename(file),
+          path: file,
+        })),
       });
 
       Logger.success(

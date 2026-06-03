@@ -116,40 +116,38 @@ export const startCronJobs = () => {
           return;
         }
 
-        // 2. Compacta e envia a Série 3 (se existir)
+        const zipPaths: string[] = [];
+
+        // 2. Compacta a Série 3 (se existir)
         if (mapSerie3.size > 0) {
           const zipPath3 = await storageService.compressAndSave(
             mapSerie3,
             `notas_Serie3_${getClient}_${dateNow}.zip`,
           );
-          await mailService.sendZipsReport(
-            zipPath3 as string,
-            finalIniDate,
-            finalEndDate,
-          );
+          zipPaths.push(zipPath3 as string);
         }
 
-        // 3. Compacta e envia a Série 4 (se existir)
+        // 3. Compacta a Série 4 (se existir)
         if (mapSerie4.size > 0) {
           const zipPath4 = await storageService.compressAndSave(
             mapSerie4,
             `notas_Serie4_${getClient}_${dateNow}.zip`,
           );
-          await mailService.sendZipsReport(
-            zipPath4 as string,
-            finalIniDate,
-            finalEndDate,
-          );
+          zipPaths.push(zipPath4 as string);
         }
 
-        // 4. Compacta e envia a Série 5 (se existir)
+        // 4. Compacta a Série 5 (se existir)
         if (mapSerie5.size > 0) {
           const zipPath5 = await storageService.compressAndSave(
             mapSerie5,
             `notas_Serie5_${getClient}_${dateNow}.zip`,
           );
+          zipPaths.push(zipPath5 as string);
+        }
+
+        if (zipPaths.length > 0) {
           await mailService.sendZipsReport(
-            zipPath5 as string,
+            zipPaths,
             finalIniDate,
             finalEndDate,
           );
