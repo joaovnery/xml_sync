@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { XmlService } from "../services/xmlService";
+import { XmlServicePilecco, XmlServiceMebuki } from "../services/xmlService";
 import { getDynamicsDates, getDateNow } from "../utils/date.utils";
 import { MailService } from "../services/mailSerivce";
 import { StorageService } from "../services/storageService";
@@ -15,7 +15,8 @@ export const startCronJobs = () => {
     `Robô de sincronização iniciado — Agenda: ${cronSchedule}`,
   );
 
-  const xmlService = new XmlService();
+  const xmlServicePilecco = new XmlServicePilecco();
+  const xmlServiceMebuki = new XmlServiceMebuki();
   const mailService = new MailService();
   const storageService = new StorageService();
   const chatService = new ChatService();
@@ -40,7 +41,7 @@ export const startCronJobs = () => {
       try {
         isRunning = true;
         const dateNow = getDateNow();
-        const { map, filaIds } = await xmlService.fetchXmlsPilecco();
+        const { map, filaIds } = await xmlServicePilecco.fetchXmls();
 
         if (!map || map.size === 0) {
           Logger.info(
@@ -61,11 +62,11 @@ export const startCronJobs = () => {
           `notas_${getClient}_${dateNow}.zip`,
         );
 
-        const difalData = await xmlService.fetchDifalData(filaIds);
+        const difalData = await xmlServicePilecco.fetchDifalData(filaIds);
 
         await mailService.sendZipReportPilecco(zipPath as string, difalData);
 
-        await xmlService.markAsSent(filaIds);
+        await xmlServicePilecco.markAsSent(filaIds);
 
         await chatService.sendMessagePilecco(map.size);
       } catch (error) {
@@ -113,7 +114,7 @@ export const startCronJobs = () => {
           );
         }
 
-        let { map, newlyFetchedKeys } = await xmlService.fetchXmlsMebuki(
+        let { map, newlyFetchedKeys } = await xmlServiceMebuki.fetchXmlsAvanco(
           finalIniDate,
           finalEndDate,
         );
