@@ -27,14 +27,13 @@ export class MailService {
     );
 
     const formatIniDate = formatDateForUTCBrazil(iniDate);
-    const formatEndDate = formatDateForUTCBrazil(endDate);
 
     try {
       await this.transporter.sendMail({
         from: `${envConfig.EMAIL_SENDER}`,
         cc: `${envConfig.EMAIL_CC}`,
         to: `${envConfig.EMAIL_RECIPIENT}`,
-        subject: `NF-e — Período ${formatIniDate} a ${formatEndDate} | ${envConfig.CLIENT_NAME}`,
+        subject: `NF-e — Período ${formatIniDate} | ${envConfig.CLIENT_NAME}`,
         html: `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f8f9fa; border-radius: 8px;">
             <div style="background: linear-gradient(135deg, #1a73e8, #0d47a1); padding: 20px 24px; border-radius: 8px 8px 0 0; color: #ffffff;">
@@ -45,12 +44,12 @@ export class MailService {
               <p style="margin: 0 0 16px; color: #333;">Prezados,</p>
               <p style="margin: 0 0 16px; color: #333;">
                 Segue em anexo o arquivo ZIP contendo as notas fiscais eletrônicas (NF-e)
-                emitidas durante o período de <strong>${formatIniDate}</strong> a <strong>${formatEndDate}</strong>.
+                emitidas durante o período de <strong>${formatIniDate}</strong>.
               </p>
               <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
                 <tr>
                   <td style="padding: 8px 12px; background: #e8f0fe; border-radius: 4px; color: #1a73e8; font-weight: 600;">
-                    📅 Período: ${formatIniDate} — ${formatEndDate}
+                    📅 Período: ${formatIniDate}
                   </td>
                 </tr>
               </table>

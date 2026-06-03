@@ -11,7 +11,6 @@ export class ChatService {
 
   async sendMessage(quantityXmls: number, iniDate: string, endDate: string) {
     const formatIniDate = formatDateForUTCBrazil(iniDate);
-    const formatEndDate = formatDateForUTCBrazil(endDate);
 
     try {
       Logger.info("Google Chat", "Enviando notificação para o Google Chat");
@@ -23,7 +22,7 @@ export class ChatService {
           `ℹ️ *Nenhuma Nota Encontrada*`,
           ``,
           `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
-          `📅 *Período:* ${formatIniDate} → ${formatEndDate}`,
+          `📅 *Período:* ${formatIniDate}`,
           `📦 *XMLs coletados:* 0`,
           `📧 *E-mail:* Não enviado (sem notas no período)`,
         ].join("\n");
@@ -32,7 +31,7 @@ export class ChatService {
           `✅ *Sincronização Concluída*`,
           ``,
           `📌 *Cliente:* ${envConfig.CLIENT_NAME}`,
-          `📅 *Período:* ${formatIniDate} → ${formatEndDate}`,
+          `📅 *Período:* ${formatIniDate}`,
           `📦 *XMLs coletados:* ${quantityXmls}`,
           `📧 *E-mail:* Enviado com sucesso`,
         ].join("\n");
