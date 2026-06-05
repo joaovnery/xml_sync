@@ -15,7 +15,8 @@
     "express": "^4.19.2",
     "mysql2": "^3.22.3",
     "node-cron": "^3.0.3",
-    "nodemailer": "^8.0.7"
+    "nodemailer": "^8.0.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

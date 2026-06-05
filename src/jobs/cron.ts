@@ -49,7 +49,6 @@ export const startCronJobs = () => {
             "Nenhum XML pendente encontrado — aguardando próximo ciclo",
           );
 
-          // await chatService.sendMessage(map.size);
           return;
         }
 
@@ -101,7 +100,6 @@ export const startCronJobs = () => {
           ? (envConfig.END_DATE as string)
           : endDate;
 
-        // 1. Recebe os Maps já separados por série
         let { mapSerie3, mapSerie4, mapSerie5, newlyFetchedKeys } =
           await xmlServiceMebuki.fetchXmlsAvanco(finalIniDate, finalEndDate);
 
@@ -118,7 +116,6 @@ export const startCronJobs = () => {
 
         const zipPaths: string[] = [];
 
-        // 2. Compacta a Série 3 (se existir)
         if (mapSerie3.size > 0) {
           const zipPath3 = await storageService.compressAndSave(
             mapSerie3,
@@ -127,7 +124,6 @@ export const startCronJobs = () => {
           zipPaths.push(zipPath3 as string);
         }
 
-        // 3. Compacta a Série 4 (se existir)
         if (mapSerie4.size > 0) {
           const zipPath4 = await storageService.compressAndSave(
             mapSerie4,
@@ -136,7 +132,6 @@ export const startCronJobs = () => {
           zipPaths.push(zipPath4 as string);
         }
 
-        // 4. Compacta a Série 5 (se existir)
         if (mapSerie5.size > 0) {
           const zipPath5 = await storageService.compressAndSave(
             mapSerie5,
@@ -153,7 +148,6 @@ export const startCronJobs = () => {
           );
         }
 
-        // 5. Finaliza o processo enviando pro chat e salvando o ledger
         await chatService.sendMessage(totalSize, finalIniDate, finalEndDate);
 
         if (newlyFetchedKeys.length > 0) {

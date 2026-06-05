@@ -180,7 +180,6 @@ export class XmlServiceMebuki {
       let ignoreDuplicates = 0;
       const newlyFetchedKeys: string[] = [];
 
-      // 1. Consulta Avanço (Série 3)
       const [rowsAvanco] = await dbConnection.query<RowDataPacket[]>(
         `
         SELECT nf.nfno, nf.nfkey, nf.date, nf.storeno, x.xml 
@@ -191,7 +190,6 @@ export class XmlServiceMebuki {
         [1, iniDate, endDate],
       );
 
-      // 2. Consulta Venda (Séries 4 e 5)
       const [rowsVenda] = await dbConnection.query<RowDataPacket[]>(
         `
         SELECT L.nfkey AS chaveAcesso, N.nfse AS serieNota, L.xml 
@@ -202,7 +200,6 @@ export class XmlServiceMebuki {
         [iniDate, 1, 4, 5],
       );
 
-      // 3. Consulta Devolução/Retorno (Séries 4 e 5)
       const [rowsDevRet] = await dbConnection.query<RowDataPacket[]>(
         `
         SELECT X.nfekey AS chaveAcesso, I.invse AS serieNota, L.xml 
@@ -214,7 +211,6 @@ export class XmlServiceMebuki {
         [iniDate, 1, 4, 5],
       );
 
-      // 4. Consulta Canceladas (Séries 4 e 5)
       const [rowsCancel] = await dbConnection.query<RowDataPacket[]>(
         `
         SELECT nf2.nfekey AS chaveAcesso, nf.nfse AS serieNota, nfeavxml.xml
@@ -234,7 +230,6 @@ export class XmlServiceMebuki {
         [1, iniDate, 1, iniDate],
       );
 
-      // Função inteligente para separar nas caixinhas certas
       const processarNotas = (
         rows: any[],
         chaveColuna: string,
@@ -248,7 +243,6 @@ export class XmlServiceMebuki {
             continue;
           }
 
-          // Correção aqui: garantindo que o valor seja tratado como número
           const serie = seriePadrao || Number(nota.serieNota);
 
           if (serie === 3) mapSerie3.set(key, nota.xml);
@@ -259,7 +253,7 @@ export class XmlServiceMebuki {
         }
       };
 
-      processarNotas(rowsAvanco, "nfkey", 3); // Força série 3 para as da Avanço
+      processarNotas(rowsAvanco, "nfkey", 3);
       processarNotas(rowsVenda, "chaveAcesso");
       processarNotas(rowsDevRet, "chaveAcesso");
       processarNotas(rowsCancel, "chaveAcesso");

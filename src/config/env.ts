@@ -1,20 +1,32 @@
-export const envConfig = {
-  PORT: process.env.PORT,
-  EMAIL_APP_PASSWORD: process.env.EMAIL_APP_PASSWORD,
-  EMAIL_USER: process.env.EMAIL_USER,
-  EMAIL_SENDER: process.env.EMAIL_SENDER,
-  EMAIL_RECIPIENT: process.env.EMAIL_RECIPIENT,
-  EMAIL_CC: process.env.EMAIL_CC,
-  GOOGLE_CHAT_WEBHOOK_URL: process.env.GOOGLE_CHAT_WEBHOOK_URL,
-  CRON_SCHEDULE: process.env.CRON_SCHEDULE,
-  USE_FIX_DATE: process.env.USE_FIX_DATE,
-  INI_DATE: process.env.INI_DATE,
-  END_DATE: process.env.END_DATE,
-  LOOKBACKDAYS: process.env.LOOKBACKDAYS,
-  CLIENT_NAME: process.env.CLIENT_NAME,
-  DB_HOST: process.env.DB_HOST,
-  DB_PORT: process.env.DB_PORT,
-  DB_USER: process.env.DB_USER,
-  DB_PASSWORD: process.env.DB_PASSWORD,
-  DB_NAME: process.env.DB_NAME,
-};
+import { z } from "zod";
+
+const envSchema = z.object({
+  PORT: z.string().optional(),
+  EMAIL_APP_PASSWORD: z.string().min(1, "EMAIL_APP_PASSWORD é obrigatória"),
+  EMAIL_USER: z.string().min(1, "EMAIL_USER é obrigatória"),
+  EMAIL_SENDER: z.string().min(1, "EMAIL_SENDER é obrigatória"),
+  EMAIL_RECIPIENT: z.string().min(1, "EMAIL_RECIPIENT é obrigatória"),
+  EMAIL_CC: z.string().optional(),
+  GOOGLE_CHAT_WEBHOOK_URL: z.string().optional(),
+  CRON_SCHEDULE: z.string().optional(),
+  USE_FIX_DATE: z.string().optional(),
+  INI_DATE: z.string().optional(),
+  END_DATE: z.string().optional(),
+  LOOKBACKDAYS: z.string().optional(),
+  CLIENT_NAME: z.string().min(1, "CLIENT_NAME é obrigatória"),
+  DB_HOST: z.string().min(1, "DB_HOST é obrigatória"),
+  DB_PORT: z.string().min(1, "DB_PORT é obrigatória"),
+  DB_USER: z.string().min(1, "DB_USER é obrigatória"),
+  DB_PASSWORD: z.string().min(1, "DB_PASSWORD é obrigatória"),
+  DB_NAME: z.string().min(1, "DB_NAME é obrigatória"),
+});
+
+const _env = envSchema.safeParse(process.env);
+
+if (!_env.success) {
+  console.error("❌ Erro de validação nas variáveis de ambiente:");
+  console.error(JSON.stringify(_env.error.format(), null, 2));
+  process.exit(1);
+}
+
+export const envConfig = _env.data;
