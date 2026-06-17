@@ -41,7 +41,7 @@ export const startCronJobs = () => {
       try {
         isRunning = true;
         const dateNow = getDateNow();
-        const { map, filaIds } = await xmlServicePilecco.fetchXmls();
+        const { map, filaIds } = await xmlServicePilecco.fetchXmls(envConfig.STORENO as string);
 
         if (!map || map.size === 0) {
           Logger.info(
@@ -49,6 +49,7 @@ export const startCronJobs = () => {
             "Nenhum XML pendente encontrado — aguardando próximo ciclo",
           );
 
+          // await chatService.sendMessage(map.size);
           return;
         }
 

@@ -8,6 +8,7 @@ const envSchema = z.object({
   EMAIL_RECIPIENT: z.string().min(1, "EMAIL_RECIPIENT é obrigatória"),
   EMAIL_CC: z.string().optional(),
   GOOGLE_CHAT_WEBHOOK_URL: z.string().optional(),
+  STORENO: z.string().optional(),
   CRON_SCHEDULE: z.string().optional(),
   USE_FIX_DATE: z.string().optional(),
   INI_DATE: z.string().optional(),

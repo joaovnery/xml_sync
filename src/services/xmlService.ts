@@ -20,7 +20,7 @@ export interface DifalRow extends RowDataPacket {
 }
 
 export class XmlServicePilecco {
-  async fetchXmls() {
+  async fetchXmls(storeno: string) {
     const map: Map<string, string> = new Map();
     const filaIds: number[] = [];
     Logger.info(
@@ -43,7 +43,7 @@ export class XmlServicePilecco {
       WHERE f.status_envio = 'PENDENTE'
       AND f.storeno = ?;
       `,
-      [1],
+      [storeno],
     );
 
     for (const invoice of rows) {
